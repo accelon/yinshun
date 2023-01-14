@@ -1,0 +1,21 @@
+{
+  "name": "yinshun",
+  "version": "1.0.0",
+  "description": "著作權所有者：印順文教基金會\r Download [yinshun.cor](http://ya.ksana.tw/yinshun-corpus/yinshun.cor)",
+  "main": "conv-accelon17.js",
+  "type":"module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/accelon/yinshun.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/accelon/yinshun/issues"
+  },
+  "homepage": "https://github.com/accelon/yinshun#readme"
+}
