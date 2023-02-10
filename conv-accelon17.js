@@ -234,7 +234,7 @@ files.forEach(filename=>{
     .replace(/<pb n="([ab])(\d+)"\/>/g,"^pb$2$1")
     .replace(/<lb[ \n]+n=([^<]+?)\/>/g,(m,m1)=>{ //some tag has multiple space 
         return '^lb ';
-    }).replace(/\^lb[^a-zA-Z_\-]/g,'\t')//tab as lb
+    }).replace(/\^lb[^a-zA-Z_\-]/g,'')
     .replace(/(\^pb\d+)\t/g,'$1');
     
     conv(filename,content);

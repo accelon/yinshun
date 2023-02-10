@@ -23,14 +23,14 @@ export const getPageLineCh=(pages,pg,line,ch,toline,toch)=>{
     let out='';
     for (let i=line;i<=toline;i++) {
         if (!pages[pg]) {
-           console.log('page not found',pg)
+        //    console.log('page not found',pg)
            continue;
         }
         if (!pages[pg][i]) continue;
         
         let [linetext]=parseOfftext(pages[pg][i]);
         linetext=removePunc(linetext.trim());
-        if (pg==3) console.log(linetext)
+        // if (pg==1) console.log(pg,line,ch,toline,toch,linetext)
         if (i==line) {
             out=linetext.slice(ch, i==toline?toch:linetext.length);
         } else if (i==toline && i>line) {
