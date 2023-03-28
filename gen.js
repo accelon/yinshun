@@ -5,7 +5,7 @@ await nodefs;
 import {onOpen,onClose,onText} from './handlers.js'
 import {hotfix} from './src/hotfix.js'
 
-const a17folder='yinshun-corpus/' ;//github.com/yinshun/yinshun-corpus
+const accelon17folder='yinshun-corpus/' ;//github.com/yinshun/yinshun-corpus
 const files=[];
 const from =1;
 const count=1;
@@ -27,7 +27,7 @@ const conv=(content,filename)=>{
 
 const convall=()=>{
     files.forEach(filename=>{
-        let content=readTextContent(a17folder+'/xml/'+filename+'.xml')
+        let content=readTextContent(accelon17folder+'/xml/'+filename+'.xml')
         const errata=hotfix[filename];
         if (errata) {
             console.log('patching',filename)

@@ -15,7 +15,7 @@ export const onOpen={
         if (ctx.orig) {
             ctx.orig=false;
             const otxt=p2otxt[ctx.filename]||{};
-            return '\n^o'+(otxt[ctx.n]?'@'+otxt[ctx.n]:'')
+            return '\n^o'+(otxt[ctx.n]?'@'+otxt[ctx.n]:'')+' '
         } else {
             return '\n◆'
         }
