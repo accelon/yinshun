@@ -1,4 +1,6 @@
 import {p2otxt,head2ck} from './chunks.js'
+import {meta_cbeta} from 'ptk/nodebundle.cjs'
+
 export const onOpen={
     lb:(el,ctx)=>{
         if (el.attrs.type!=='old') {
@@ -32,9 +34,16 @@ export const onOpen={
         if (el.attrs.type=='被解釋的經論') {
             ctx.orig=true;
         }
-    }
+    },
+    ref:(el,ctx)=>{
+        const target=meta_cbeta.parseRefTarget(el.attrs.target,el.attrs.type);
+        return '^j@'+target+'〔';
+    },
 }
 export const onClose={
+    ref:(el,ctx)=>{
+        return '〕'
+    },
     figure:(el,ctx)=>{
         ctx.breaklb=false;
     },
