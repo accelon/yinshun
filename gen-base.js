@@ -1,11 +1,7 @@
-import {unique,alphabetically,Offtext,breakChineseSentence,
-    meta_cbeta,readTextContent,DOMFromString,walkDOM,xpath,
-    cjkPhrases,removeBracket,alphabetically0, fromObj,nodefs,parseOfftext,readTextLines, writeChanged} from 'ptk/nodebundle.cjs'
+import {meta_cbeta,DOMFromString,walkDOM,xpath,nodefs,writeChanged} from 'ptk/nodebundle.cjs'
 await nodefs;
-import {onOpen,onClose,onText} from './handlers.js'
+import {onOpen,onClose,onText} from './src/handlers.js'
 import {hotfix} from './src/hotfix.js'
-
-const accelon17folder='yinshun-corpus/' ;//github.com/yinshun/yinshun-corpus
 
 const ctx={};
 
@@ -20,24 +16,17 @@ const parseTEI=(content,filename)=>{
     return ctx.out;
 }
 
-export const convall=(files,docontent)=>{
-    files.forEach(filename=>{
-        let content=readTextContent(accelon17folder+'/xml/'+filename+'.xml')
-        const errata=hotfix[filename];
-        if (errata) {
-            console.log('patching',filename)
-            content=patchBuf(content,errata,filename)
-        }
-        content=content.replace(/\n<pb/g,"<pb");//excessive \n
-        content=parseTEI(content,filename);
-
-        const [err,lines]=docontent(content);
-        if (!err) {
-            writeChanged('off/'+filename+'.off',lines.join('\n'),true)
-        } else {
-            console.log(err);
-        }
-       
-    })
-};
-
+export const conv=(buf,fn)=>{
+    const errata=hotfix[filename];
+    if (errata) {
+        console.log('patching',filename)
+        content=patchBuf(content,errata,filename)
+    }
+    content=parseTEI(content,filename);
+    const [err,lines]=docontent(content,filename);
+    if (!err) {
+        writeChanged('off/'+filename+'.off',lines.join('\n'),true)
+    } else {
+        console.log(err);
+    }
+}

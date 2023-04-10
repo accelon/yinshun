@@ -3,3 +3,5 @@ off
 yinshun-corpus
 yinshun
 *.xml
+*.tsv_
+*.json
