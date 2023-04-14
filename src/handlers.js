@@ -1,7 +1,8 @@
 // import {p2otxt,head2ck} from './chunks.js'
-import {meta_cbeta,toBase26} from 'ptk/nodebundle.cjs'
+import {meta_cbeta,toBase26,makeElementId} from 'ptk/nodebundle.cjs'
 
-const makeChunkId=(ctx)=>{
+const makeId=(ctx)=>{
+    if (!ctx.n) return '';
     const m=ctx.n.match(/(\d+)\.(\d+)/);
     const id=parseInt(m[1])+toBase26(parseInt(m[2])-1);
     if (ctx.previd==id) return '';
@@ -9,57 +10,86 @@ const makeChunkId=(ctx)=>{
     if (!ctx.idcount) ctx.idcount=0;
     ctx.idcount++;
     ctx.previd=id;
-    return id+' ';
+    ctx.previdline=ctx.prevlbcount;
+    return id;
 }
-const emitID=(el,ctx)=>{
-    const id=makeChunkId(ctx);
-    const emit=id?'\n^ck'+id:'\n';
-    if (emit) {
-        if (!ctx.prevlbcount) ctx.prevlbcount=0;
-        const dist=ctx.lbcount-ctx.prevlbcount;
-        ctx.distances.push([ctx.milestone+id, dist ]);
-        ctx.prevlbcount=ctx.lbcount;
+
+const emitID=(el,ctx,weight=0)=>{
+    const id=makeId(ctx);
+    if (!id) return ''; //already emit in this line
+    let tag='p';
+
+    if (!ctx.prevlbcount) ctx.prevlbcount=0;
+    if (!ctx.prevckline) ctx.prevckline=0;
+    if (!ctx.prevckweight) ctx.prevckweight=0;
+
+    const dist  =ctx.lbcount - ctx.prevlbcount;
+    const ckdist=ctx.lbcount - ctx.prevckline;
+    
+    if ( weight && ckdist>4 && weight>= ctx.prevckweight) {
+        tag='ck';
+        ctx.prevckweight=weight; //記下目前ck的權重
+        ctx.prevckline=ctx.lbcount;
+    } else {
+        ctx.prevckweight=0;
     }
+    ctx.compact=true;
+    const emit='\n^'+tag+id;
+
+    ctx.distances.push([ctx.bk+id, dist ]);
+    ctx.prevlbcount=ctx.lbcount;
+    
     return emit;
 }
 export const onOpen={
     milestone:(el,ctx)=>{ //2023.4.11 之後新增 到 github.com/yinshun/yinshun-corpus
         // console.log(el.attrs.id);
-        ctx.milestone=el.attrs.id;
-        return '^bk#'+ctx.milestone+'【'+el.attrs.title+'】';
+        if (el.attrs.type) {
+            if (el.attrs.type=="bk") ctx.bk=el.attrs.id;
+            ctx.depthcounts=[];
+            const title=el.attrs.title;
+            return '^'+makeElementId(el.attrs.type,el.attrs.id)+(title?'【'+title+'】':'');   
+        }
     },
     lb:(el,ctx)=>{
         if (!ctx.lbcount) ctx.lbcount=0;
         ctx.lbcount++;
-        if (el.attrs.type!=='old') { //cbeta 有新舊兩版頁碼。 yinshun-corpus 只有舊版頁碼
+        if ('old'!==el.attrs.type) { //cbeta 有新舊兩版頁碼。 yinshun-corpus 只有舊版頁碼
             ctx.n=el.attrs.n;
         }
         if (ctx.breaklb) return '\n';
     },
     head:(el,ctx)=>{
-        // const insertofftag=(head2ck[ctx.filename]||{})[ctx.n]
-        // if (insertofftag) return insertofftag+'【';
-        // return '　　'
+        if (!ctx.depthcounts) ctx.depthcounts=[];
+        ctx.depthcounts.length=ctx.divdepth;
+        if (!ctx.depthcounts[ctx.divdepth-1]) ctx.depthcounts[ctx.divdepth-1]=0;
+        ctx.depthcounts[ctx.divdepth-1]++;
+        const depthcount=ctx.depthcounts[ctx.divdepth-1];
+        return '^z'+toBase26(ctx.divdepth-1)+depthcount+'【';
     },
     p:(el,ctx)=>{
-        return emitID(el,ctx);
+        let weight=0;
+        if ("head"===el.attrs.type) weight=4;
+        return emitID(el,ctx,weight);
     },
     figure:(el,ctx)=>{
         ctx.breaklb=true;
-        return emitID(el,ctx);
+        return emitID(el,ctx,3);
     },
     table:(el,ctx)=>{
         ctx.breaklb=true;
-        return emitID(el,ctx);
+        return emitID(el,ctx,3);
     },
     seg:(el,ctx)=>{
-        return emitID(el,ctx);
+        return emitID(el,ctx,2);
     },
     div:(el,ctx)=>{ //計算深度
-        return emitID(el,ctx);
+        if (!ctx.divdepth) ctx.divdepth=0;
+        ctx.divdepth++;
+        return emitID(el,ctx,4);
     },
     q:(el,ctx)=>{
-        if (el.attrs.type=='被解釋的經論') {
+        if ('被解釋的經論'===el.attrs.type) {
             ctx.orig=true;
         }
     },
@@ -81,18 +111,25 @@ export const onClose={
     },
     head:(el,ctx)=>{
         // const insertofftag=(head2ck[ctx.filename]||{})[ctx.n]
-        // if (insertofftag) return '】'
+        return '】'
     },
     _note:(el,ctx)=>{// with <ref> inside
-        if (!ctx.notes) ctx.notes={};
-        if (!ctx.notes[ctx.milestone]) ctx.notes[ctx.milestone]=[];
-        const fid=ctx.notes[ctx.milestone].length;
-        ctx.notes[ctx.milestone].push('^fn'+fid+' '+el.innerText());
+        if (!ctx.notes[ctx.bk]) ctx.notes[ctx.bk]=[];
+        const fid=ctx.notes[ctx.bk].length+1;
+        ctx.notes[ctx.bk].push('^fn'+fid+' '+el.innerText());
         ctx.hide=false;
+        ctx.compact=true;
         return '^f'+fid;
+    },
+    div:(el,ctx)=>{
+        ctx.divdepth--;
     }
 }
 export const onText=(t,ctx)=>{
+    if (ctx.compact && t.charCodeAt(0)<0x7f) { // a compact offtag is emitted just now
+        t=' '+t;                               // use blank to separate tag ]
+        ctx.compact=false;
+    }
     t=t.replace(/\[([a-z\.]+)\d*_([^\]]+)\]+/g,(m,type,gid)=>{
         if (type=='mc') {
             return ctx.charmaps[gid]||'';

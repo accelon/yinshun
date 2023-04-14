@@ -1,8 +1,8 @@
 import { nodefs,insertBuf,readTextContent, breakChineseSentence, writeChanged } from "ptk/nodebundle.cjs";
 import {conv} from './gen-base.js'
 await nodefs
-const from =1;
-const count=3;
+const from =0;
+const count=45;
 const files=[];
 const srcdir='yinshun-corpus/xml/';
 const ckdir='ck/';
@@ -30,18 +30,17 @@ const docontent=(content,fn)=>{
     return content;
 }
 
-const ctx={idcount:0,distances:[]}
+const ctx={idcount:0,distances:[],notes:{}}
 files.forEach((file,nfile)=>{
     ctx.idcount=0;
     ctx.lbcount=0;
     const content=readTextContent(srcdir+file+'.xml').replace(/\n<pb/g,'<pb');
     const out=conv(content,file,ctx);
 
-
+    
     let lines=out.split("\n");
     lines=lines.map( it=>breakChineseSentence(it).trim()).filter(it=>!!it.trim());
     let newcontent=lines.join('\n');
-    
 
     const files=newcontent.split(/(\^bk[^\n]+)/);
     for (let i=1;i<files.length/2;i++) {

@@ -1,8 +1,8 @@
 /* 產生 ck 插入表 */
 import { nodefs, readTextContent, writeChanged } from "ptk/nodebundle.cjs";
 await nodefs;
-const from =0;
-const count=45; //appendix.xml not included
+const from =1;
+const count=3; //appendix.xml not included
 const files=[] ,distances=[];
 const srcdir='yinshun-corpus/xml/'
 const outdir='ck/'
@@ -12,7 +12,7 @@ for (var i=from;i<from+count;i++) {
 let absln=0;
 const docontent=(content,fn)=>{
     const lines=content.replace(/<lb\n/g,'<lb ').split(/(<lb n="[^"]+"\/>)/);
-    let lb='', m0,pg,ln, prevln,prevpg=0,ck=0,prevabsln=absln,prevdepth=0;
+    let lb='', m0,pg,ln, prevln,prevpg=0,ck=0,prevabsln=absln,prevdepth=0,ckprefix='',ckcount=0;
     const out=[];
     for (let i=0;i<lines.length;i++) {
         const line=lines[i];
@@ -32,6 +32,14 @@ const docontent=(content,fn)=>{
 
         let depth=0 , ckid=''; 
         // depth 較小者 有較高之優先權，
+        if (~line.indexOf('<milestone type="ck"')) {
+            const m=line.match(/<milestone +type="ck" +id="([a-z]+)"/);
+            if (!m) {
+                throw "missing id in milestone "+line;
+            }
+            ckprefix=m[1];
+            ckcount=0;
+        }
         if (line.startsWith('<div><head>')) depth=1;
         else if (~line.indexOf('<p type="head">') ) depth=1;
         else if (line.startsWith('<div><p>')) depth=2;//y25 壇經 424.15
@@ -45,14 +53,18 @@ const docontent=(content,fn)=>{
         else if (line.startsWith('<q type="被解釋的經論">')) depth=3;
         else if (line.startsWith('<q type="嚴謹引文">')) depth=3;
         else if (line.match(/<p>\d+\./)) depth=3;
-        else if (line.startsWith('<p>')) depth=4;
-
+        // else if (line.startsWith('<p>')) depth=4;
 
         if (depth) {                       
             const dist=absln-prevabsln;
             //連續的科文只標第一個，最多隔5行
             //出現較上層的節點 即使隔3行內也切分
             if (lb &&(prevpg==0 || prevdepth>depth || dist>4))  {
+                if (!ckid) {
+                    ckcount++;
+                    ckid=ckprefix+ckcount;
+                }
+  
                 ck++;
                 distances.push([dist, fn,lb])
                 out.push(lb+'\t'+(ckid||ck)+'\t'+dist+'\t'
@@ -87,4 +99,4 @@ files.forEach(file=>{
 
 distances.sort( (a,b)=>b[0]-a[0]);
 console.log('total chunk count',distances.length);
-writeChanged(outdir+'distances.tsv_',distances.filter(it=>it[0]>100).join('\n'),true)
+writeChanged(outdir+'distances.tsv',distances.filter(it=>it[0]>100).join('\n'),true)

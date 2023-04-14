@@ -25,5 +25,8 @@ export const conv=(content,filename,ctx)=>{
     }
     content=parseTEI(content,filename,ctx);
 
+    //content=content.replace(/「([^」]+)」(\^f\d+)/g,(m,t,f)=>f+'﹁'+t+'﹂');
+    //.replace(/「([^」]+)」(\^f\d+)/g,(m,t,f)=>f+t)
+
     return content;
 }
