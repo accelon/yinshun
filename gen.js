@@ -1,8 +1,8 @@
 import { nodefs,insertBuf,readTextContent, breakChineseSentence, writeChanged } from "ptk/nodebundle.cjs";
 import {conv} from './gen-base.js'
 await nodefs
-const from =0;
-const count=45;
+const from =25;
+const count=2;
 const files=[];
 const srcdir='yinshun-corpus/xml/';
 const ckdir='ck/';
@@ -29,12 +29,17 @@ const docontent=(content,fn)=>{
     // content=insertck(content,fn);
     return content;
 }
-
+const tidy=content=>{
+    return content.replace(/\n<pb/g,'<pb')
+    .replace(/<note[^>]+>(<ref[^<]+)<\/note>/g,(m,m1)=>m1) //<note><ref></note> ==> <ref>
+}
 const ctx={idcount:0,distances:[],notes:{}}
 files.forEach((file,nfile)=>{
     ctx.idcount=0;
     ctx.lbcount=0;
-    const content=readTextContent(srcdir+file+'.xml').replace(/\n<pb/g,'<pb');
+    const content=tidy(readTextContent(srcdir+file+'.xml'));
+
+
     const out=conv(content,file,ctx);
 
     
@@ -45,7 +50,8 @@ files.forEach((file,nfile)=>{
     const files=newcontent.split(/(\^bk[^\n]+)/);
     for (let i=1;i<files.length/2;i++) {
         const bkid=files[i*2-1].match(/#([a-z]+)/)[1];
-        const newfilename=(nfile+1).toString().padStart(2,'0')+bkid;
+
+        const newfilename=file.slice(1).toString().padStart(2,'0')+bkid;
         writeChanged(outdir+newfilename+'.off',files[i*2-1]+files[i*2],true); 
         if (ctx.notes[bkid]) {
             const notelines=ctx.notes[bkid].map(it=>breakChineseSentence(it)).filter(it=>!!it.trim());

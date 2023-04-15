@@ -96,9 +96,28 @@ export const onOpen={
     ref:(el,ctx)=>{
         return el.attrs.text;
     },
-    _note:(el,ctx)=>{
-        ctx.hide=true;
-        return ''
+    ptr:(el,ctx)=>{
+        if (el.attrs['target']) { //pair with <note xml:id
+            const m=el.attrs['target'].match(/(\d+)\.(\d+)/);
+            if (m) {
+                const fid=m[1]+toBase26(parseInt(m[2])-1);
+                ctx.compact=true;
+                return '^ptr'+fid;
+            } else {
+                console.log('invalid ptr',el)
+            }
+        }
+    },
+    note:(el,ctx)=>{
+        let fid='';
+        if (el.attrs['xml:id']) { //pair with <ptr            
+            const m=el.attrs['xml:id'].match(/(\d+)\.(\d+)/);
+            if (m) {
+                fid=m[1]+toBase26(parseInt(m[2])-1);
+            }
+        }
+        ctx.compact=true;
+        return '^note'+fid;
     }
 }
 export const onClose={
@@ -115,10 +134,11 @@ export const onClose={
     },
     _note:(el,ctx)=>{// with <ref> inside
         if (!ctx.notes[ctx.bk]) ctx.notes[ctx.bk]=[];
-        const fid=ctx.notes[ctx.bk].length+1;
-        ctx.notes[ctx.bk].push('^fn'+fid+' '+el.innerText());
-        ctx.hide=false;
+        let fid=ctx.notes[ctx.bk].length+1;
         ctx.compact=true;
+        ctx.hide=false;
+        ctx.notes[ctx.bk].push('^fn'+fid+' '+el.innerText());
+
         return '^f'+fid;
     },
     div:(el,ctx)=>{
