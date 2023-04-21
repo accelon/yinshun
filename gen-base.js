@@ -1,4 +1,4 @@
-import {meta_cbeta,DOMFromString,walkDOM,xpath,nodefs,patchBuf} from 'ptk/nodebundle.cjs'
+import {meta_cbeta,writeChanged, DOMFromString,walkDOM,xpath,nodefs,patchBuf} from 'ptk/nodebundle.cjs'
 await nodefs;
 import {onOpen,onClose,onText} from './src/handlers.js'
 import {hotfix} from './src/hotfix.js'
@@ -6,13 +6,20 @@ import {hotfix} from './src/hotfix.js'
 
 const parseTEI=(content,filename,ctx)=>{
     content=meta_cbeta.nullify(content);
+    writeChanged(filename+'-nullify.xml',content,true)
     const el=DOMFromString(content);
+    if (!el) {
+        console.log('invalide xml');
+        return '';
+    }
     const charmaps=meta_cbeta.buildCharMap(el); //CB缺字 及unicode/拼形式 對照表
     ctx.charmaps=charmaps;
     ctx.filename=filename;
+
     const body=xpath(el,'text/body');
     walkDOM(body,ctx,onOpen,onClose,onText);
     const str=ctx.out;
+    
     ctx.out='';
     return str;
 }

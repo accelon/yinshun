@@ -25,16 +25,16 @@ const emitID=(el,ctx,weight=0)=>{
 
     const dist  =ctx.lbcount - ctx.prevlbcount;
     const ckdist=ctx.lbcount - ctx.prevckline;
-    
-    if ( weight && ckdist>4 && weight>= ctx.prevckweight) {
+
+    if ( weight && (ckdist>4 || ctx.bkckcount==0) && weight>= ctx.prevckweight) {
         tag='ck';
+        ctx.bkckcount++;
         ctx.prevckweight=weight; //記下目前ck的權重
         ctx.prevckline=ctx.lbcount;
     } else {
         ctx.prevckweight=0;
     }
-    ctx.compact=true;
-    const emit='\n^'+tag+id;
+    const emit='\n^'+tag+id+' '; //extra space
 
     ctx.distances.push([ctx.bk+id, dist ]);
     ctx.prevlbcount=ctx.lbcount;
@@ -45,7 +45,10 @@ export const onOpen={
     milestone:(el,ctx)=>{ //2023.4.11 之後新增 到 github.com/yinshun/yinshun-corpus
         // console.log(el.attrs.id);
         if (el.attrs.type) {
-            if (el.attrs.type=="bk") ctx.bk=el.attrs.id;
+            if (el.attrs.type=="bk") {
+                ctx.bk=el.attrs.id;
+                ctx.bkckcount=0;
+            }
             ctx.depthcounts=[];
             const title=el.attrs.title;
             return '^'+makeElementId(el.attrs.type,el.attrs.id)+(title?'【'+title+'】':'');   
@@ -53,7 +56,7 @@ export const onOpen={
     },
     lb:(el,ctx)=>{
         if (!ctx.lbcount) ctx.lbcount=0;
-        ctx.lbcount++;
+        ctx.lbcount++; 
         if ('old'!==el.attrs.type) { //cbeta 有新舊兩版頁碼。 yinshun-corpus 只有舊版頁碼
             ctx.n=el.attrs.n;
         }
@@ -97,18 +100,21 @@ export const onOpen={
         return el.attrs.text;
     },
     ptr:(el,ctx)=>{
+        //同頁注 的編號格式為  ^f1a ==> ^fm1a 
+        //異頁注 的編號只有數字，集中在 xx-notes.off  ^f1 => ^fn1
         if (el.attrs['target']) { //pair with <note xml:id
             const m=el.attrs['target'].match(/(\d+)\.(\d+)/);
             if (m) {
                 const fid=m[1]+toBase26(parseInt(m[2])-1);
                 ctx.compact=true;
-                return '^ptr'+fid;
+                return '^f'+fid;
             } else {
                 console.log('invalid ptr',el)
             }
         }
     },
     note:(el,ctx)=>{
+        //同頁注
         let fid='';
         if (el.attrs['xml:id']) { //pair with <ptr            
             const m=el.attrs['xml:id'].match(/(\d+)\.(\d+)/);
@@ -116,8 +122,14 @@ export const onOpen={
                 fid=m[1]+toBase26(parseInt(m[2])-1);
             }
         }
+        for (let i=0;i<el.children.length;i++) {
+            if (el.children[i].name=='note') {
+                console.log('nested',el)
+            }
+        }
+        if (!fid) return '';
         ctx.compact=true;
-        return '^note'+fid;
+        return '^fm'+fid;
     }
 }
 export const onClose={
@@ -128,11 +140,14 @@ export const onClose={
     figure:(el,ctx)=>{
         ctx.breaklb=false;
     },
+    table:(el,ctx)=>{
+        ctx.breaklb=false;
+    },
     head:(el,ctx)=>{
         // const insertofftag=(head2ck[ctx.filename]||{})[ctx.n]
         return '】'
     },
-    _note:(el,ctx)=>{// with <ref> inside
+    _note:(el,ctx)=>{// with <ref> inside 異頁注
         if (!ctx.notes[ctx.bk]) ctx.notes[ctx.bk]=[];
         let fid=ctx.notes[ctx.bk].length+1;
         ctx.compact=true;
